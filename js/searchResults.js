@@ -1,35 +1,13 @@
-let searchBoxValue = document.getElementById("searchBox");
-const searchButton = document.getElementById("searchButton");
-const resultsDiv = document.getElementById("resultsDiv");
-const loaderP = document.getElementById("loading");
 const baseUrl =
   "https://stock-exchange-dot-full-stack-course-services.ew.r.appspot.com/api/v3";
 
-document.addEventListener("DOMContentLoaded", function (event) {
-  document.querySelectorAll("img").forEach(function (img) {
-    img.onerror = function () {
-      this.style.display = "none";
-    };
-  });
-});
-
-showLoader = () => {
-  loaderP.style.display = "unset";
-};
-
-hideLoader = () => {
-  loaderP.style.display = "none";
-};
-queryAddress = () => {
-  window.location.search = `query=${searchBoxValue.value}`;
-};
-let timeout = 0;
+function highlightText(text, searchTerm) {
+  const regex = new RegExp(searchTerm, "gi");
+  return text.replace(regex, (match) => `<mark>${match}</mark>`);
+}
 
 function getNameAndSymbol(name) {
-  let endpoint =
-    "https://stock-exchange-dot-full-stack-course-services.ew.r.appspot.com/api/v3/search?query=" +
-    name +
-    "&limit=10&exchange=NASDAQ";
+  let endpoint = `${baseUrl}/search?query=${name}&limit=10&exchange=NASDAQ`;
   resultsDiv.innerHTML = "<h1>.your_search_results:</h1>";
   return fetch(endpoint)
     .then((response) => response.json())
@@ -67,9 +45,12 @@ function getNameAndSymbol(name) {
                 return;
               }
             }
-            const firstPEl = resultsDiv.querySelectorAll("p");
+            const firstPEl = resultsDiv.querySelectorAll("p")[0];
             if (firstPEl) {
-              firstPEl.textContent = `Changes Percentage: ${data.profile.changesPercentage}%`;
+              firstPEl.innerHTML = `Changes Percentage: ${highlightText(
+                data.profile.changesPercentage + "%",
+                name
+              )}`;
               firstPEl.classList.add(changesNegPoz);
               const triangleIcon = document.createElement("span");
               triangleIcon.classList.add("triangle");
@@ -78,14 +59,22 @@ function getNameAndSymbol(name) {
               );
               firstPEl.appendChild(triangleIcon);
             }
+            const nameEl = resultsDiv.querySelectorAll("div a")[i];
+            const nameText = nameEl.textContent;
+            nameEl.innerHTML = highlightText(nameText, name);
           })
-          .catch((error) => (imgEl.style.display = "none")); //how to bring it to work );
+          .catch((error) => (imgEl.style.display = "none"));
         promises.push(promise);
         resultsDiv.innerHTML += `
         <div>
           <a href="company.html?symbol=${symbol}">
-            ${data[i].name}, (${symbol})
-            <img src="" data-symbol="${symbol}" alt="${data[i].name} icon" width="50" height="50">
+            ${highlightText(data[i].name, name)}, (${highlightText(
+          symbol,
+          name
+        )})
+            <img src="" data-symbol="${symbol}" alt="${
+          data[i].name
+        } icon" width="50" height="50">
           </a><p></p>
           <br>
         </div>
@@ -95,19 +84,3 @@ function getNameAndSymbol(name) {
     })
     .catch((error) => console.log(error));
 }
-
-autoSearchDebounce = () => {
-  clearTimeout(timeout);
-  timeout = setTimeout(async () => {
-    showLoader();
-    await getNameAndSymbol(searchBoxValue.value);
-    hideLoader();
-  }, 500);
-};
-
-bothFunctions = () => {
-  autoSearchDebounce();
-};
-
-searchButton.addEventListener("click", autoSearchDebounce, queryAddress);
-searchBoxValue.addEventListener("keyup", autoSearchDebounce);
